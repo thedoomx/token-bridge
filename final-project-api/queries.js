@@ -7,11 +7,6 @@ const pool = new Pool({
     port: 5432,
 })
 
-// locked = 1
-// claimed = 2
-// burned = 3
-// released = 4
-
 const getNotClaimedEvents = (request, response) => {
     pool.query('SELECT * FROM public.events WHERE event_type = 1', (error, results) => {
         if (error) {
@@ -44,11 +39,16 @@ const getBridgedEventsByAddress = (request, response) => {
 }
 
 const createEvent = (request, response) => {
-    const { address_from, address_to, amount, event_type, isActive } = request.body
+    const { from, to, amount, nonce, signature, step } = request.body;
+    const is_Active = true;
+
+    if(step == 3) {
+        is_Active = false;
+    }
 
     pool.query(
-        'INSERT INTO public.events(address_from, address_to, amount, event_type, isActive) VALUES ($1)',
-        [address_from, address_to, amount, event_type, isActive],
+        'INSERT INTO public.events(address_from, address_to, amount, nonce, signed_message, event_type, is_Active) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                                  [from, to, amount, nonce, signature, step, is_Active],
         (error, results) => {
             if (error) {
                 throw error
