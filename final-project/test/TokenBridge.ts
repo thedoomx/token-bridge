@@ -79,7 +79,7 @@ describe("TokenBridge", function () {
     signedMessage = await addr2.signMessage(arrayfiedHash);
 
     await expect(tokenBridge.connect(addr2).lock(originalTokenAddress, from, to, 0, nonce, signedMessage))
-    .to.be.rejectedWith('amount must be above 0');
+      .to.be.rejectedWith('amount must be above 0');
   });
   it("Lock: Should emit Bridge event for Lock operation", async function () {
     messageHash = ethers.utils.solidityKeccak256(
@@ -121,7 +121,7 @@ describe("TokenBridge", function () {
     signedMessage = await addr2.signMessage(arrayfiedHash);
 
     await expect(tokenBridge.connect(addr2).release(originalTokenAddress, from, to, 0, nonce, signedMessage))
-    .to.be.rejectedWith('amount must be above 0');
+      .to.be.rejectedWith('amount must be above 0');
   });
   it("Release: Should be rejected with - wrong signature", async function () {
     from = addr4.address;
@@ -135,12 +135,12 @@ describe("TokenBridge", function () {
     signedMessage = await addr4.signMessage(arrayfiedHash);
 
     await expect(tokenBridge.connect(addr2).release(originalTokenAddress, from, to, 5, nonce, signedMessage))
-    .to.be.rejectedWith('wrong signature');
+      .to.be.rejectedWith('wrong signature');
   });
   it("Release: Should emit Bridge event for Release operation", async function () {
     await expect(tokenBridge.connect(addr2).release(originalTokenAddress, from, to, amount, nonce, signedMessage))
-    .to.emit(tokenBridge, "Bridge")
-    .withArgs(from, to, amount, nonce, signedMessage, 3);
+      .to.emit(tokenBridge, "Bridge")
+      .withArgs(from, to, amount, nonce, signedMessage, 3);
   });
   it("Release: Should be rejected with - this transaction has already been processed", async function () {
     await expect(tokenBridge.connect(addr2).release(originalTokenAddress, from, to, amount, nonce, signedMessage))
