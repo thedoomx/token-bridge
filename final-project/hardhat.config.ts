@@ -2,6 +2,8 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
 require("./tasks")
+require('dotenv').config({ path: __dirname + '/.env' })
+const { API_BASE_URL, TOKEN_BRIDGE_ADDRESS, SIDE_TOKEN_BRIDGE_ADDRESS } = process.env
 
 const config: HardhatUserConfig = {
   solidity: "0.8.0",
@@ -30,6 +32,20 @@ module.exports = {
   mocha: {
     timeout: 300000, // 300 seconds max for running tests
   },
+  bridge_api: {
+    url: API_BASE_URL,
+    endpoints: {
+      getLockedTokensAmount: "getLockedTokensAmount?from=%s&to=%s",
+      getClaimedTokensAmount: "getClaimedTokensAmount?from=%s&to=%s",
+      getBurnedTokensAmount: "getBurnedTokensAmount?from=%s&to=%s",
+      getReleasedTokensAmount: "getReleasedTokensAmount?from=%s&to=%s",
+    }
+  },
+  deployed_contracts: {
+    token_bridge_address: TOKEN_BRIDGE_ADDRESS,
+    side_token_bridge_address: SIDE_TOKEN_BRIDGE_ADDRESS,
+  },
+  nonce_counter: 0
 };
 
 export default config;
