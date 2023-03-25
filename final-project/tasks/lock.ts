@@ -20,7 +20,7 @@ task("lock", "Locks amount to be bridged")
             const signer = await ethers.getSigner(from);
             const signedMessage = await signMessage(signer, to, amount, nonce, ethers);
 
-            const tokenBridgeAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+            const tokenBridgeAddress = hre.config.deployed_contracts.token_bridge_address;
 
             const tokenBridge = await hre.ethers.getContractAt("TokenBridge", tokenBridgeAddress);
             const myTokenOne = await hre.ethers.getContractAt("MyTokenOne", originalToken);
