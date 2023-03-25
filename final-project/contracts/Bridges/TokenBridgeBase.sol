@@ -20,8 +20,8 @@ abstract contract TokenBridgeBase is RecoverSigner {
     event Bridge(
         address from,
         address to,
-        uint amount,
-        uint nonce,
+        uint256 amount,
+        uint256 nonce,
         bytes signature,
         Step indexed step
     );
@@ -34,7 +34,7 @@ abstract contract TokenBridgeBase is RecoverSigner {
         bytes signature;
     }
 
-    modifier requireAmountAboveZero(uint amount) {
+    modifier requireAmountAboveZero(uint256 amount) {
         require(
             amount > 0,
             "amount must be above 0"
