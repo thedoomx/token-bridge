@@ -103,21 +103,8 @@ const getReleasedTokensAmount = async (request, response) => {
     return response.status(200).json(results)
 }
 
-const getBridgedEventsByAddress = (request, response) => {
-    const address = parseInt(request.params.address)
-
-    pool.query('SELECT * FROM public.events WHERE address_from = $1 event_type = 2 OR event_type = 4 ',
-        [address],
-        (error, results) => {
-            if (error) {
-                throw error
-            }
-            response.status(200).json(results.rows)
-        })
-}
-
 const createEvent = async (request, response) => {
-    const { from, to, amount, nonce, signature, step } = request.body;
+    const { from, to, amount, nonce, signature, step, lastProcessedBlock } = request.body;
 
     const eventBySignature = await getEventBySignature(signature);
     if (eventBySignature.length !== 0) {
@@ -137,6 +124,23 @@ const createEvent = async (request, response) => {
         )
     }
 
+    await updateBridgedTokens(from, to, amount);
+
+    await updateLastProcessedBlock(lastProcessedBlock);
+}
+
+async function updateLastProcessedBlock(lastProcessedBlock) {
+    const lastProcessedBlocksArr = await getLastProcessedBlock();
+    console.log(lastProcessedBlocksArr);
+    if (lastProcessedBlocksArr.length !== 0) {
+        await updateLastProcessedBlock(lastProcessedBlocksArr[0].id, lastProcessedBlock);
+    }
+    else {
+        await createLastProcessedBlock(lastProcessedBlock);
+    }
+}
+
+async function updateBridgedTokens(from, to, amount) {
     let bridgedTokensArr;
     if (step == 0 || step == 1) {
         bridgedTokensArr = await getBridgedTokensAmounts(from, to);
@@ -189,7 +193,6 @@ async function getEventBySignature(signature) {
     return response.rows;
 }
 
-
 const getLastProcessedBlock = (request, response) => {
     pool.query('SELECT * FROM public.processed_block LIMIT 1', (error, results) => {
         if (error) {
@@ -199,10 +202,7 @@ const getLastProcessedBlock = (request, response) => {
     })
 }
 
-const updateLastProcessedBlock = (request, response) => {
-    const id = parseInt(request.params.id)
-    const { lastProcessedBlock } = request.body
-
+async function updateLastProcessedBlock(id, lastProcessedBlock) {
     pool.query(
         'UPDATE public.processed_block SET last_processed_block = $1 WHERE id = $2',
         [lastProcessedBlock, id],
@@ -215,9 +215,7 @@ const updateLastProcessedBlock = (request, response) => {
     )
 }
 
-const createLastProcessedBlock = (request, response) => {
-    const { lastProcessedBlock } = request.body
-
+async function createLastProcessedBlock(lastProcessedBlock) {
     pool.query(
         'INSERT INTO public.processed_block(last_processed_block) VALUES ($1)',
         [lastProcessedBlock],
@@ -236,10 +234,7 @@ module.exports = {
     getBurnedTokensAmount,
     getReleasedTokensAmount,
 
-    getBridgedEventsByAddress,
     createEvent,
 
-    getLastProcessedBlock,
-    createLastProcessedBlock,
-    updateLastProcessedBlock,
+    getLastProcessedBlock
 }

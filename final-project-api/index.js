@@ -15,8 +15,6 @@ app.listen(port, () => {
     console.log(`App running on port ${port}.`)
 })
 
-app.get('/getBridgedEventsByAddress/:address', db.getBridgedEventsByAddress)
-
 app.get('/getLockedTokensAmount', db.getLockedTokensAmount)
 app.get('/getClaimedTokensAmount', db.getClaimedTokensAmount)
 app.get('/getBurnedTokensAmount', db.getBurnedTokensAmount)
@@ -25,6 +23,3 @@ app.get('/getReleasedTokensAmount', db.getReleasedTokensAmount)
 app.post('/event', db.createEvent)
 
 app.get('/lastprocessedblock', db.getLastProcessedBlock)
-app.post('/lastprocessedblock', db.createLastProcessedBlock)
-app.put('/lastprocessedblock/:id', db.updateLastProcessedBlock)
-
