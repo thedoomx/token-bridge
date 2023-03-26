@@ -39,6 +39,8 @@ module.exports = {
       getClaimedTokensAmount: "getClaimedTokensAmount?from=%s&to=%s",
       getBurnedTokensAmount: "getBurnedTokensAmount?from=%s&to=%s",
       getReleasedTokensAmount: "getReleasedTokensAmount?from=%s&to=%s",
+      lastProcessedBlock: "lastprocessedblock",
+      event: "event",
     }
   },
   deployed_contracts: {
