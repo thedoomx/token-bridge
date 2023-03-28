@@ -5,17 +5,22 @@ const TokenBridge = require('../artifacts/contracts/Bridges/TokenBridge.sol/Toke
 const SideTokenBridge = require('../artifacts/contracts/Bridges/SideTokenBridge.sol/SideTokenBridge.json');
 
 const hre = require("hardhat");
-const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545")
+const networkMainProvider = new ethers.providers.JsonRpcProvider("http://localhost:8545")
+const networkSideProvider = new ethers.providers.JsonRpcProvider("http://localhost:8545")
 
 async function run() {
   const contracts = await _setup();
   const tokenBridge = contracts[0];
   const sideTokenBridge = contracts[1];
 
-  await _processPastEvents(tokenBridge);
-  await _processPastEvents(sideTokenBridge);
 
+  await _processPastEvents(
+    await _getPastEvents(tokenBridge, networkMainProvider, true),
+    await _getPastEvents(sideTokenBridge, networkSideProvider, false));
+
+  return;
   tokenBridge.on("Bridge", async (from, to, amount, nonce, signature, step) => {
+    const latestBlock = await networkMainProvider.getBlock("latest");
     const transferEvent = {
       from: from,
       to: to,
@@ -23,7 +28,7 @@ async function run() {
       nonce: nonce.toNumber(),
       signature: signature,
       step: step,
-      blockNumber: await provider.getBlock("latest").number
+      blockNumber: latestBlock.number
     };
 
     console.log("Latest block :" + transferEvent.blockNumber);
@@ -33,6 +38,7 @@ async function run() {
   });
 
   sideTokenBridge.on("Bridge", async (from, to, amount, nonce, signature, step) => {
+    const latestBlock = await networkSideProvider.getBlock("latest");
     const transferEvent = {
       from: from,
       to: to,
@@ -40,7 +46,7 @@ async function run() {
       nonce: nonce.toNumber(),
       signature: signature,
       step: step,
-      blockNumber: await provider.getBlock("latest").number
+      blockNumber: latestBlock.number
     };
 
     console.log("Latest block :" + transferEvent.blockNumber);
@@ -50,18 +56,37 @@ async function run() {
   });
 }
 
-async function _processPastEvents(tokenBridgeContract) {
-  const last_processed_block = await _getLastProcessedBlock();
-  const latestBlock = await provider.getBlock("latest");
+async function _processPastEvents(mainNetworkEvents, sideNetworkPastEvents) {
+  if (mainNetworkEvents == undefined)
+    mainNetworkEvents = [];
+  if (sideNetworkPastEvents == undefined)
+    sideNetworkPastEvents = [];
 
-  if (latestBlock == last_processed_block) {
+  const sortedEvents = mainNetworkEvents.concat(sideNetworkPastEvents).sort(function (a, b) {
+    return a.nonce - b.nonce;
+  });
+
+  sortedEvents.forEach(async pastEvent => {
+
+    console.log("Past Bridge: " + JSON.stringify(pastEvent, null, 4));
+
+    await _postEvent(pastEvent);
+  });
+}
+
+async function _getPastEvents(tokenBridgeContract, networkProvider, isMainNetwork) {
+  const last_processed_block = await _getLastProcessedBlock(isMainNetwork);
+  const latestBlock = await networkProvider.getBlock("latest");
+
+  if (last_processed_block == latestBlock.number) {
     return;
   }
+  const eventFilter = tokenBridgeContract.filters.Bridge()
+  const events = await tokenBridgeContract.queryFilter(eventFilter, last_processed_block, "latest");
 
-  let eventFilter = tokenBridgeContract.filters.Bridge()
-  let events = await tokenBridgeContract.queryFilter(eventFilter, last_processed_block, "latest");
+  let pastEvents = [];
 
-  await events.forEach(async event => {
+  events.forEach(event => {
     const { from, to, amount, nonce, signature, step } = event.args;
     const blockNumber = event.blockNumber;
 
@@ -75,13 +100,13 @@ async function _processPastEvents(tokenBridgeContract) {
       blockNumber: blockNumber
     };
 
-    console.log("Past Bridge: " + JSON.stringify(transferEvent, null, 4));
+    pastEvents.push(transferEvent);
+  });
 
-    await _postEvent(transferEvent);
-  })
+  return pastEvents;
 }
 
-async function _getLastProcessedBlock() {
+async function _getLastProcessedBlock(isMainNetwork) {
   const url =
     hre.config.bridge_api.url + hre.config.bridge_api.endpoints.lastProcessedBlock;
 
@@ -97,7 +122,12 @@ async function _getLastProcessedBlock() {
 
     const data = await response.json();
     if (data.length > 0) {
-      return data[0].last_processed_block;
+      if (isMainNetwork) {
+        return data[0].last_processed_block_main;
+      }
+      else {
+        return data[0].last_processed_block_side;
+      }
     }
 
   } catch (error) {
@@ -129,27 +159,25 @@ async function _postEvent(transferEvent) {
       },
       body: JSON.stringify(postData)
     });
-
+   
     if (!response.ok) {
       const message = 'Error with Status Code: ' + response.status;
       throw new Error(message);
     }
-
-    const data = await response.json();
-    console.log(data);
   } catch (error) {
     console.log('Error: ' + error);
   }
 }
 
 async function _setup() {
-  const wallet = new ethers.Wallet("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", provider);
+  const walletMain = new ethers.Wallet("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", networkMainProvider);
+  const walletSide = new ethers.Wallet("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", networkSideProvider);
 
   const tokenBridgeAddress = hre.config.deployed_contracts.token_bridge_address;;
-  const tokenBridgeContract = new ethers.Contract(tokenBridgeAddress, TokenBridge.abi, wallet);
+  const tokenBridgeContract = new ethers.Contract(tokenBridgeAddress, TokenBridge.abi, walletMain);
 
   const sideTokenBridgeAddress = hre.config.deployed_contracts.side_token_bridge_address;;
-  const sideTokenBridgeContract = new ethers.Contract(sideTokenBridgeAddress, SideTokenBridge.abi, wallet);
+  const sideTokenBridgeContract = new ethers.Contract(sideTokenBridgeAddress, SideTokenBridge.abi, walletSide);
 
   return [tokenBridgeContract, sideTokenBridgeContract];
 }
