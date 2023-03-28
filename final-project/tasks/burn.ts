@@ -2,6 +2,7 @@ import { task } from "hardhat/config";
 import { signMessage } from "./helper/sign-message";
 import { getAvailableAmount } from "./helper/get-available-amount";
 import * as util from "util";
+import { Step } from "./helper/Step";
 
 task("burn", "Burns amount that is bridged")
     .addPositionalParam("from")
@@ -12,10 +13,7 @@ task("burn", "Burns amount that is bridged")
         async (_args, { ethers, run }) => {
             const hre = require("hardhat");
 
-            const from = _args.from;
-            const to = _args.to;
-            const amount = _args.amount;
-            const nonce = _args.nonce;
+            const { from, to, amount, nonce } = _args;
 
             const signer = await ethers.getSigner(from);
             const signedMessage = await signMessage(signer, to, amount, nonce, ethers);
@@ -23,15 +21,16 @@ task("burn", "Burns amount that is bridged")
             const sideTokenBridgeAddress = hre.config.deployed_contracts.side_token_bridge_address;
             const sideTokenBridge = await hre.ethers.getContractAt("SideTokenBridge", sideTokenBridgeAddress);
 
-            const availableAmount =
-                await getAvailableAmount(hre.config.bridge_api.url + util.format(hre.config.bridge_api.endpoints.getClaimedTokensAmount, to, from));
-            if (availableAmount < amount) {
-                console.log("Current claimed amount is %s, you are trying to burn %s", availableAmount, amount);
-                return;
-            }
+            // const availableAmount =
+            //     await getAvailableAmount(hre.config.bridge_api.url + util.format(hre.config.bridge_api.endpoints.getClaimedTokensAmount, to, from), Step.Burn);
+            
+            //     if (availableAmount < amount) {
+            //     console.log("Current claimed amount is %s, you are trying to burn %s", availableAmount, amount);
+            //     return;
+            // }
 
             try {
-                await sideTokenBridge.connect(signer).claim(from, to, amount, nonce, signedMessage);
+                await sideTokenBridge.connect(signer).burn(from, to, amount, nonce, signedMessage);
             }
             catch (e) {
                 console.log(e.reason);

@@ -11,11 +11,7 @@ task("lock", "Locks amount to be bridged")
         async (_args, { ethers, run }) => {
             const hre = require("hardhat");
 
-            const originalToken = _args.originalToken;
-            const from = _args.from;
-            const to = _args.to;
-            const amount = _args.amount;
-            const nonce = _args.nonce;
+            const { originalToken, from, to, amount, nonce } = _args;
 
             const signer = await ethers.getSigner(from);
             const signedMessage = await signMessage(signer, to, amount, nonce, ethers);
