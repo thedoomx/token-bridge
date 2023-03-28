@@ -53,7 +53,7 @@ async function getBridgedTokensAmount(address_from, address_to, event_type) {
 
 async function createBridgedToken(address_from, address_to, amount) {
     try {
-        response = await pool.query(
+        await pool.query(
             'INSERT INTO public.bridged_tokens(address_from, address_to, amount_locked, amount_claimed, amount_burned, amount_released) VALUES ($1, $2, $3, 0, 0, 0)',
             [address_from, address_to, amount])
     } catch (err) {
@@ -63,7 +63,7 @@ async function createBridgedToken(address_from, address_to, amount) {
 
 async function updateBridgedToken(id, bridgedTokenAmountLocked, bridgedTokenAmountClaimed, bridgedTokenAmountBurned, bridgedTokenAmountReleased) {
     try {
-        response = await pool.query(
+        await pool.query(
             'UPDATE public.bridged_tokens SET amount_locked = $2, amount_claimed = $3, amount_burned = $4, amount_released = $5 WHERE id = $1',
             [id, bridgedTokenAmountLocked, bridgedTokenAmountClaimed, bridgedTokenAmountBurned, bridgedTokenAmountReleased],)
     } catch (err) {
@@ -104,43 +104,48 @@ const getReleasedTokensAmount = async (request, response) => {
 }
 
 const createEvent = async (request, response) => {
-    const { from, to, amount, nonce, signature, step, lastProcessedBlock } = request.body;
+    const { from, to, amount, nonce, signature, step, blockNumber } = request.body;
 
     const eventBySignature = await getEventBySignature(signature);
     if (eventBySignature.length !== 0) {
         console.log("event already logged")
-        return;
+        return response.status(400).json({ success: false });
     }
     else {
-        pool.query(
-            'INSERT INTO public.events(address_from, address_to, amount, nonce, signed_message, event_type) VALUES ($1, $2, $3, $4, $5, $6)',
-            [from, to, amount, nonce, signature, step],
-            (error, results) => {
-                if (error) {
-                    throw error
-                }
-                response.status(200)
-            }
-        )
+        try {
+            await pool.query('INSERT INTO public.events(address_from, address_to, amount, nonce, signed_message, event_type) VALUES ($1, $2, $3, $4, $5, $6)',
+                [from, to, amount, nonce, signature, step]);
+        } catch (err) {
+            console.error(err);
+        }
     }
 
-    await updateBridgedTokens(from, to, amount);
+    await updateBridgedTokens(from, to, amount, step);
 
-    await updateLastProcessedBlock(lastProcessedBlock);
+    await updateLastProcessedBlockByStep(blockNumber, step);
+
+    return response.status(200).json({ success: true });
 }
 
-async function updateLastProcessedBlock(lastProcessedBlock) {
-    const lastProcessedBlocksArr = await getLastProcessedBlock();
-    console.log(lastProcessedBlocksArr);
+async function updateLastProcessedBlockByStep(blockNumber, step) {
+    const lastProcessedBlocksArr = await getLastProcessedBlockArr();
+
     if (lastProcessedBlocksArr.length !== 0) {
-        await updateLastProcessedBlock(lastProcessedBlocksArr[0].id, lastProcessedBlock);
+        if (step == 0 || step == 3) {
+            await updateLastProcessedBlock(
+                lastProcessedBlocksArr[0].id, blockNumber, lastProcessedBlocksArr[0].last_processed_block_side);
+        }
+        else {
+            await updateLastProcessedBlock(
+                lastProcessedBlocksArr[0].id, lastProcessedBlocksArr[0].last_processed_block_main, blockNumber);
+        }
     }
     else {
-        await createLastProcessedBlock(lastProcessedBlock);
+        await createLastProcessedBlock(blockNumber);
     }
 }
 
-async function updateBridgedTokens(from, to, amount) {
+async function updateBridgedTokens(from, to, amount, step) {
     let bridgedTokensArr;
     if (step == 0 || step == 1) {
         bridgedTokensArr = await getBridgedTokensAmounts(from, to);
@@ -172,7 +177,6 @@ async function updateBridgedTokens(from, to, amount) {
             bridgedTokenAmountBurned -= amount;
             bridgedTokenAmountReleased += amount;
         }
-        console.log(bridgedTokenAmountLocked, bridgedTokenAmountClaimed, bridgedTokenAmountBurned, bridgedTokenAmountReleased);
         await updateBridgedToken(bridgedTokenEntry.id, bridgedTokenAmountLocked, bridgedTokenAmountClaimed, bridgedTokenAmountBurned, bridgedTokenAmountReleased);
     }
     else {
@@ -202,30 +206,36 @@ const getLastProcessedBlock = (request, response) => {
     })
 }
 
-async function updateLastProcessedBlock(id, lastProcessedBlock) {
-    pool.query(
-        'UPDATE public.processed_block SET last_processed_block = $1 WHERE id = $2',
-        [lastProcessedBlock, id],
-        (error, results) => {
-            if (error) {
-                throw error
-            }
-            response.status(200)
-        }
-    )
+async function getLastProcessedBlockArr(address_from, address_to) {
+    let response;
+
+    try {
+        response = await pool.query('SELECT * FROM public.processed_block LIMIT 1')
+    } catch (err) {
+        console.error(err);
+    }
+
+    return response.rows;
+}
+
+async function updateLastProcessedBlock(id, lastProcessedBlockMain, lastProcessedBlockSide) {
+    try {
+        await pool.query(
+            'UPDATE public.processed_block SET last_processed_block_main = $2, last_processed_block_side = $3 WHERE id = $1',
+            [id, lastProcessedBlockMain, lastProcessedBlockSide],)
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 async function createLastProcessedBlock(lastProcessedBlock) {
-    pool.query(
-        'INSERT INTO public.processed_block(last_processed_block) VALUES ($1)',
-        [lastProcessedBlock],
-        (error, results) => {
-            if (error) {
-                throw error
-            }
-            response.status(200)
-        }
-    )
+    try {
+        await pool.query(
+            'INSERT INTO public.processed_block(last_processed_block_main, last_processed_block_side) VALUES ($1, $2)',
+            [lastProcessedBlock, 0],)
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 module.exports = {
