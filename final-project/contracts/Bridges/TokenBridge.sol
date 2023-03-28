@@ -33,7 +33,12 @@ contract TokenBridge is TokenBridgeBase {
         IERC20 originalToken = IERC20(originalTokenAddress);
         require(originalToken.balanceOf(from) >= amount, "insufficient assets");
 
-        originalToken.transferFrom(from, address(this), amount);
+        bool isTransferSuccessful = originalToken.transferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+        require(isTransferSuccessful);
 
         WrappedToken token = _getWrappedToken(originalTokenAddress);
 
@@ -58,7 +63,8 @@ contract TokenBridge is TokenBridgeBase {
         _orignalTokenContracts[originalTokenAddress].burn(to, amount);
 
         IERC20 originalToken = IERC20(originalTokenAddress);
-        originalToken.transfer(to, amount);
+        bool isTransferSuccessful = originalToken.transfer(to, amount);
+        require(isTransferSuccessful);
 
         emit Bridge(from, to, amount, nonce, signature, Step.Release);
     }
