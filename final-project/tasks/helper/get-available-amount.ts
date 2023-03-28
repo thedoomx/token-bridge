@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
+import { Step } from "./Step";
 
-export async function getAvailableAmount(url: string): Promise<number> {
+export async function getAvailableAmount(url: string, step: Step): Promise<number> {
     try {
         const response = await fetch(url, {
             method: "get",
@@ -13,7 +14,15 @@ export async function getAvailableAmount(url: string): Promise<number> {
 
         const data = await response.json();
         if (data.length > 0) {
-            return data[0].amount;
+            if(step == Step.Claim) {
+                return data[0].amount_locked;
+            }
+            else if(step == Step.Burn) {
+                return data[0].amount_claimed;
+            }
+            else if(step == Step.Release) {
+                return data[0].amount_burned;
+            }
         }
 
     } catch (error) {
