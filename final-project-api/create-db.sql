@@ -19,7 +19,8 @@ CREATE TABLE public.events (
 
 CREATE TABLE public.processed_block (
   ID SERIAL PRIMARY KEY,
-	last_processed_block INTEGER
+	last_processed_block_main INTEGER,
+	last_processed_block_side INTEGER
 );
 
 create table public.bridged_tokens (
