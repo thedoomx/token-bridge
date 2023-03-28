@@ -1,4 +1,4 @@
 # ERC 20 Token Bridge
-This repository contains a Hardhat project containing token bridge smart contracts, CLI tasks and smart contract events listener. The other project is a Express.js API that is used to store and retrieve the parsed events from a Postgres DB.
+A Hardhat project with token bridge smart contracts, CLI actions, and a smart contract events listener can be found in this repository. The parsed events are stored and retrieved from a Postgres DB using the other app, an Express.js API.
 
-Please check separate project's README files.
+Please review the README folders for each project.
