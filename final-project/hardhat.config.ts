@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 
 require("./tasks")
 require('dotenv').config({ path: __dirname + '/.env' })
-const { API_BASE_URL, TOKEN_BRIDGE_ADDRESS, SIDE_TOKEN_BRIDGE_ADDRESS } = process.env
+const { API_BASE_URL, TOKEN_BRIDGE_ADDRESS, SIDE_TOKEN_BRIDGE_ADDRESS, WALLET } = process.env
 
 const config: HardhatUserConfig = {
   solidity: "0.8.0",
@@ -47,7 +47,7 @@ module.exports = {
     token_bridge_address: TOKEN_BRIDGE_ADDRESS,
     side_token_bridge_address: SIDE_TOKEN_BRIDGE_ADDRESS,
   },
-  nonce_counter: 0
+  wallet: WALLET
 };
 
 export default config;
