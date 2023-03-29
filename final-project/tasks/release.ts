@@ -3,18 +3,19 @@ import { signMessage } from "./helper/sign-message";
 import { getAvailableAmount } from "./helper/get-available-amount";
 import * as util from "util";
 import { Step } from "./helper/Step";
+import { getNonce } from "./helper/get-nonce";
 
 task("release", "Releases amount that is bridged")
     .addPositionalParam("originalToken")
     .addPositionalParam("from")
     .addPositionalParam("to")
     .addPositionalParam("amount")
-    .addPositionalParam("nonce")
     .setAction(
         async (_args, { ethers, run }) => {
             const hre = require("hardhat");
 
-            const { originalToken, from, to, amount, nonce } = _args;
+            const { originalToken, from, to, amount } = _args;
+            const nonce = await getNonce(ethers, from);
 
             const signer = await ethers.getSigner(from);
             const signedMessage = await signMessage(signer, to, amount, nonce, ethers);
