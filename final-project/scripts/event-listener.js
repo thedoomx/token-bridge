@@ -13,19 +13,18 @@ async function run() {
   const tokenBridge = contracts[0];
   const sideTokenBridge = contracts[1];
 
-
   await _processPastEvents(
     await _getPastEvents(tokenBridge, networkMainProvider, true),
     await _getPastEvents(sideTokenBridge, networkSideProvider, false));
 
-  return;
-  tokenBridge.on("Bridge", async (from, to, amount, nonce, signature, step) => {
+  tokenBridge.on("Bridge", async (from, to, amount, nonce, timestamp, signature, step) => {
     const latestBlock = await networkMainProvider.getBlock("latest");
     const transferEvent = {
       from: from,
       to: to,
       amount: amount.toNumber(),
       nonce: nonce.toNumber(),
+      timestamp: timestamp.toNumber(),
       signature: signature,
       step: step,
       blockNumber: latestBlock.number
@@ -37,13 +36,14 @@ async function run() {
     await _postEvent(transferEvent);
   });
 
-  sideTokenBridge.on("Bridge", async (from, to, amount, nonce, signature, step) => {
+  sideTokenBridge.on("Bridge", async (from, to, amount, nonce, timestamp, signature, step) => {
     const latestBlock = await networkSideProvider.getBlock("latest");
     const transferEvent = {
       from: from,
       to: to,
       amount: amount.toNumber(),
       nonce: nonce.toNumber(),
+      timestamp: timestamp.toNumber(),
       signature: signature,
       step: step,
       blockNumber: latestBlock.number
@@ -63,7 +63,7 @@ async function _processPastEvents(mainNetworkEvents, sideNetworkPastEvents) {
     sideNetworkPastEvents = [];
 
   const sortedEvents = mainNetworkEvents.concat(sideNetworkPastEvents).sort(function (a, b) {
-    return a.nonce - b.nonce;
+    return a.timestamp - b.timestamp;
   });
 
   sortedEvents.forEach(async pastEvent => {
@@ -77,17 +77,15 @@ async function _processPastEvents(mainNetworkEvents, sideNetworkPastEvents) {
 async function _getPastEvents(tokenBridgeContract, networkProvider, isMainNetwork) {
   const last_processed_block = await _getLastProcessedBlock(isMainNetwork);
   const latestBlock = await networkProvider.getBlock("latest");
-
   if (last_processed_block == latestBlock.number) {
     return;
   }
   const eventFilter = tokenBridgeContract.filters.Bridge()
   const events = await tokenBridgeContract.queryFilter(eventFilter, last_processed_block, "latest");
-
   let pastEvents = [];
 
   events.forEach(event => {
-    const { from, to, amount, nonce, signature, step } = event.args;
+    const { from, to, amount, nonce, timestamp, signature, step } = event.args;
     const blockNumber = event.blockNumber;
 
     const transferEvent = {
@@ -95,9 +93,10 @@ async function _getPastEvents(tokenBridgeContract, networkProvider, isMainNetwor
       to: to,
       amount: amount.toNumber(),
       nonce: nonce.toNumber(),
+      timestamp: timestamp.toNumber(),
       signature: signature,
       step: step,
-      blockNumber: blockNumber
+      blockNumber: blockNumber,
     };
 
     pastEvents.push(transferEvent);
@@ -170,8 +169,8 @@ async function _postEvent(transferEvent) {
 }
 
 async function _setup() {
-  const walletMain = new ethers.Wallet("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", networkMainProvider);
-  const walletSide = new ethers.Wallet("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", networkSideProvider);
+  const walletMain = new ethers.Wallet(hre.config.wallet, networkMainProvider);
+  const walletSide = new ethers.Wallet(hre.config.wallet, networkSideProvider);
 
   const tokenBridgeAddress = hre.config.deployed_contracts.token_bridge_address;;
   const tokenBridgeContract = new ethers.Contract(tokenBridgeAddress, TokenBridge.abi, walletMain);
