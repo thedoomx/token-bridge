@@ -36,6 +36,7 @@ contract SideTokenBridge is TokenBridgeBase {
             to,
             amount,
             nonce,
+            block.timestamp,
             signature,
             Step.Claim
         );
@@ -62,6 +63,7 @@ contract SideTokenBridge is TokenBridgeBase {
             to,
             amount,
             nonce,
+            block.timestamp,
             signature,
             Step.Burn
         );

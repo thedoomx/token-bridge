@@ -22,6 +22,7 @@ abstract contract TokenBridgeBase is RecoverSigner {
         address to,
         uint256 amount,
         uint256 nonce,
+        uint256 timestamp,
         bytes signature,
         Step indexed step
     );

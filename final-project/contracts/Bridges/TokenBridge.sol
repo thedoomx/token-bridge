@@ -26,10 +26,14 @@ contract TokenBridge is TokenBridgeBase {
         bytes calldata signature
     )
         external
-        requireAmountAboveZero(amount)
         validateProcessedSignature(signature)
         validateSigner(Signer(from, to, amount, nonce, signature))
     {
+         require(
+            amount > 0,
+            "amount must be above 0"
+        );
+
         IERC20 originalToken = IERC20(originalTokenAddress);
         require(originalToken.balanceOf(from) >= amount, "insufficient assets");
 
@@ -44,7 +48,7 @@ contract TokenBridge is TokenBridgeBase {
 
         token.mint(from, amount);
 
-        emit Bridge(from, to, amount, nonce, signature, Step.Lock);
+        emit Bridge(from, to, amount, nonce, block.timestamp, signature, Step.Lock);
     }
 
     function release(
@@ -66,7 +70,7 @@ contract TokenBridge is TokenBridgeBase {
         bool isTransferSuccessful = originalToken.transfer(to, amount);
         require(isTransferSuccessful);
 
-        emit Bridge(from, to, amount, nonce, signature, Step.Release);
+        emit Bridge(from, to, amount, nonce, block.timestamp, signature, Step.Release);
     }
 
     function _getWrappedToken(
