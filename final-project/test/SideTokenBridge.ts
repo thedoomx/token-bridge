@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { SideTokenBridge } from "../typechain-types/contracts/Bridges/SideTokenBridge";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 
 describe("SideTokenBridge", function () {
 
@@ -61,7 +62,7 @@ describe("SideTokenBridge", function () {
   it("Claim: Should emit Bridge event for Claim operation", async function () {
     await expect(sideTokenBridge.connect(addr4).claim(from, to, amount, nonce, signedMessage))
       .to.emit(sideTokenBridge, "Bridge")
-      .withArgs(from, to, amount, nonce, signedMessage, 1);
+      .withArgs(from, to, amount, nonce, anyValue, signedMessage, 1);
   });
   it("Claim: Should be rejected with - this transaction has already been processed", async function () {
     await expect(sideTokenBridge.connect(addr4).claim(from, to, amount, nonce, signedMessage))
@@ -101,7 +102,7 @@ describe("SideTokenBridge", function () {
   it("Burn: Should emit Bridge event for Burn operation", async function () {
     await expect(sideTokenBridge.connect(addr4).burn(from, to, amount, nonce, signedMessage))
       .to.emit(sideTokenBridge, "Bridge")
-      .withArgs(from, to, amount, nonce, signedMessage, 2);
+      .withArgs(from, to, amount, nonce, anyValue, signedMessage, 2);
   });
   it("Burn: Should be rejected with - this transaction has already been processed", async function () {
     await expect(sideTokenBridge.connect(addr4).burn(from, to, amount, nonce, signedMessage))

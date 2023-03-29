@@ -3,6 +3,7 @@ import { ethers } from "hardhat";
 import { MyTokenOne } from "../typechain-types/contracts/Tokens/MyTokenOne";
 import { TokenBridge } from "../typechain-types/contracts/Bridges/TokenBridge";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 
 describe("TokenBridge", function () {
   let myTokenOneFactory;
@@ -91,7 +92,7 @@ describe("TokenBridge", function () {
     myTokenOne.connect(addr2).approve(tokenBridge.address, amount);
     await expect(tokenBridge.connect(addr2).lock(originalTokenAddress, from, to, amount, nonce, signedMessage))
       .to.emit(tokenBridge, "Bridge")
-      .withArgs(from, to, amount, nonce, signedMessage, 0);
+      .withArgs(from, to, amount, nonce, anyValue, signedMessage, 0);
   });
   it("Lock: Should be rejected with - this transaction has already been processed", async function () {
 
@@ -140,7 +141,7 @@ describe("TokenBridge", function () {
   it("Release: Should emit Bridge event for Release operation", async function () {
     await expect(tokenBridge.connect(addr2).release(originalTokenAddress, from, to, amount, nonce, signedMessage))
       .to.emit(tokenBridge, "Bridge")
-      .withArgs(from, to, amount, nonce, signedMessage, 3);
+      .withArgs(from, to, amount, nonce, anyValue, signedMessage, 3);
   });
   it("Release: Should be rejected with - this transaction has already been processed", async function () {
     await expect(tokenBridge.connect(addr2).release(originalTokenAddress, from, to, amount, nonce, signedMessage))
@@ -176,7 +177,7 @@ describe("TokenBridge", function () {
     myTokenOne.connect(addr2).approve(tokenBridge.address, amount);
     await expect(tokenBridge.connect(addr2).lock(originalTokenAddress, from, to, amount, nonce, signedMessage))
       .to.emit(tokenBridge, "Bridge")
-      .withArgs(from, to, amount, nonce, signedMessage, 0);
+      .withArgs(from, to, amount, nonce, anyValue, signedMessage, 0);
   });
   it("RecoverSigner: Should be reverted due to short signature", async function () {
     nonce++;
